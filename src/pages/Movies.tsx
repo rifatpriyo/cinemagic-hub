@@ -1,5 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { Helmet } from 'react-helmet-async';
+import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import MovieCard from '@/components/movies/MovieCard';
@@ -13,6 +12,10 @@ const Movies: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Now Showing Movies - TixWix Cinema';
+  }, []);
 
   const filteredMovies = useMemo(() => {
     return movies.filter(movie => {
@@ -36,103 +39,96 @@ const Movies: React.FC = () => {
   };
 
   return (
-    <>
-      <Helmet>
-        <title>Now Showing Movies - TixWix Cinema</title>
-        <meta name="description" content="Browse and book tickets for the latest movies at TixWix Cinema Complex. IMAX, 4DX, and Dolby Atmos experiences available." />
-      </Helmet>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      <main className="flex-1 pt-24 pb-16">
+        <div className="container mx-auto px-4">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Now Showing</h1>
+            <p className="text-muted-foreground">Book your movie experience today</p>
+          </div>
 
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        <main className="flex-1 pt-24 pb-16">
-          <div className="container mx-auto px-4">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">Now Showing</h1>
-              <p className="text-muted-foreground">Book your movie experience today</p>
+          {/* Search & Filters */}
+          <div className="mb-8 space-y-4">
+            <div className="flex gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  placeholder="Search movies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant={showFilters ? 'default' : 'outline'}
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                {selectedGenres.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {selectedGenres.length}
+                  </Badge>
+                )}
+              </Button>
             </div>
 
-            {/* Search & Filters */}
-            <div className="mb-8 space-y-4">
-              <div className="flex gap-4">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    placeholder="Search movies..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Button
-                  variant={showFilters ? 'default' : 'outline'}
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="gap-2"
-                >
-                  <Filter className="w-4 h-4" />
-                  Filters
+            {/* Genre Filters */}
+            {showFilters && (
+              <div className="glass-card p-4 animate-slide-up">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium">Filter by Genre</h3>
                   {selectedGenres.length > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {selectedGenres.length}
-                    </Badge>
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="w-4 h-4 mr-1" />
+                      Clear all
+                    </Button>
                   )}
-                </Button>
-              </div>
-
-              {/* Genre Filters */}
-              {showFilters && (
-                <div className="glass-card p-4 animate-slide-up">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-medium">Filter by Genre</h3>
-                    {selectedGenres.length > 0 && (
-                      <Button variant="ghost" size="sm" onClick={clearFilters}>
-                        <X className="w-4 h-4 mr-1" />
-                        Clear all
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {genres.map(genre => (
-                      <Button
-                        key={genre}
-                        variant={selectedGenres.includes(genre) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleGenre(genre)}
-                      >
-                        {genre}
-                      </Button>
-                    ))}
-                  </div>
                 </div>
-              )}
-            </div>
-
-            {/* Movies Grid */}
-            {filteredMovies.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {filteredMovies.map((movie, index) => (
-                  <div
-                    key={movie.id}
-                    className="animate-slide-up"
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                  >
-                    <MovieCard movie={movie} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <p className="text-muted-foreground text-lg">No movies found matching your criteria.</p>
-                <Button variant="outline" onClick={clearFilters} className="mt-4">
-                  Clear filters
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {genres.map(genre => (
+                    <Button
+                      key={genre}
+                      variant={selectedGenres.includes(genre) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleGenre(genre)}
+                    >
+                      {genre}
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </main>
-        <Footer />
-      </div>
-    </>
+
+          {/* Movies Grid */}
+          {filteredMovies.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {filteredMovies.map((movie, index) => (
+                <div
+                  key={movie.id}
+                  className="animate-slide-up"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  <MovieCard movie={movie} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground text-lg">No movies found matching your criteria.</p>
+              <Button variant="outline" onClick={clearFilters} className="mt-4">
+                Clear filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </div>
   );
 };
 

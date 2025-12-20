@@ -1,6 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import SeatMap from '@/components/booking/SeatMap';
@@ -11,7 +10,7 @@ import { Seat } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Clock, Calendar, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, Clock, Calendar, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MovieDetail: React.FC = () => {
@@ -28,6 +27,12 @@ const MovieDetail: React.FC = () => {
   const [discount, setDiscount] = useState(0);
   const [showReceipt, setShowReceipt] = useState(false);
   const [bookingId, setBookingId] = useState('');
+
+  useEffect(() => {
+    if (movie) {
+      document.title = `${movie.title} - Book Tickets at TixWix`;
+    }
+  }, [movie]);
 
   const currentShowtime = useMemo(() => {
     return showtimes.find(st => st.id === selectedShowtime);
@@ -103,181 +108,174 @@ const MovieDetail: React.FC = () => {
   }
 
   return (
-    <>
-      <Helmet>
-        <title>{movie.title} - Book Tickets at TixWix</title>
-        <meta name="description" content={movie.description} />
-      </Helmet>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-1 pt-16">
+        {/* Hero Banner */}
+        <div className="relative h-[40vh] min-h-[300px] overflow-hidden">
+          <img
+            src={movie.backdrop || movie.poster}
+            alt={movie.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
+        </div>
 
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        
-        <main className="flex-1 pt-16">
-          {/* Hero Banner */}
-          <div className="relative h-[40vh] min-h-[300px] overflow-hidden">
-            <img
-              src={movie.backdrop || movie.poster}
-              alt={movie.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
-          </div>
-
-          <div className="container mx-auto px-4 -mt-32 relative z-10">
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Movie Poster */}
-              <div className="flex-shrink-0">
-                <img
-                  src={movie.poster}
-                  alt={movie.title}
-                  className="w-48 md:w-64 rounded-xl shadow-2xl border-2 border-border"
-                />
-              </div>
-
-              {/* Movie Info */}
-              <div className="flex-1 space-y-4">
-                <h1 className="text-3xl md:text-4xl font-bold">{movie.title}</h1>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1 bg-primary/20 px-3 py-1 rounded-full">
-                    <Star className="w-4 h-4 text-primary fill-primary" />
-                    <span className="font-semibold">{movie.rating}/10</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>{Math.floor(movie.duration / 60)}h {movie.duration % 60}m</span>
-                  </div>
-                  <span className="text-muted-foreground">{movie.releaseDate.split('-')[0]}</span>
-                  <span className="text-muted-foreground">{movie.language}</span>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {movie.genre.map(genre => (
-                    <Badge key={genre} variant="secondary">{genre}</Badge>
-                  ))}
-                </div>
-
-                <p className="text-muted-foreground max-w-2xl">{movie.description}</p>
-
-                <div className="text-sm text-muted-foreground">
-                  <p><span className="text-foreground">Director:</span> {movie.director}</p>
-                  <p><span className="text-foreground">Cast:</span> {movie.cast.join(', ')}</p>
-                </div>
-
-                {movie.trailerUrl && (
-                  <Button variant="outline" className="gap-2">
-                    <Play className="w-4 h-4" />
-                    Watch Trailer
-                  </Button>
-                )}
-              </div>
+        <div className="container mx-auto px-4 -mt-32 relative z-10">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Movie Poster */}
+            <div className="flex-shrink-0">
+              <img
+                src={movie.poster}
+                alt={movie.title}
+                className="w-48 md:w-64 rounded-xl shadow-2xl border-2 border-border"
+              />
             </div>
 
-            {/* Booking Section */}
-            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                {/* Date Selection */}
-                <div className="glass-card p-6">
+            {/* Movie Info */}
+            <div className="flex-1 space-y-4">
+              <h1 className="text-3xl md:text-4xl font-bold">{movie.title}</h1>
+              
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="flex items-center gap-1 bg-primary/20 px-3 py-1 rounded-full">
+                  <Star className="w-4 h-4 text-primary fill-primary" />
+                  <span className="font-semibold">{movie.rating}/10</span>
+                </div>
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>{Math.floor(movie.duration / 60)}h {movie.duration % 60}m</span>
+                </div>
+                <span className="text-muted-foreground">{movie.releaseDate.split('-')[0]}</span>
+                <span className="text-muted-foreground">{movie.language}</span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {movie.genre.map(genre => (
+                  <Badge key={genre} variant="secondary">{genre}</Badge>
+                ))}
+              </div>
+
+              <p className="text-muted-foreground max-w-2xl">{movie.description}</p>
+
+              <div className="text-sm text-muted-foreground">
+                <p><span className="text-foreground">Director:</span> {movie.director}</p>
+                <p><span className="text-foreground">Cast:</span> {movie.cast.join(', ')}</p>
+              </div>
+
+              {movie.trailerUrl && (
+                <Button variant="outline" className="gap-2">
+                  <Play className="w-4 h-4" />
+                  Watch Trailer
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Booking Section */}
+          <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* Date Selection */}
+              <div className="glass-card p-6">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  Select Date
+                </h2>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {dates.map(date => {
+                    const dateObj = new Date(date);
+                    const isSelected = selectedDate === date;
+                    return (
+                      <button
+                        key={date}
+                        onClick={() => {
+                          setSelectedDate(date);
+                          setSelectedShowtime(null);
+                          setSelectedSeats([]);
+                        }}
+                        className={`flex-shrink-0 w-16 h-20 rounded-xl flex flex-col items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary hover:bg-secondary/80'
+                        }`}
+                      >
+                        <span className="text-xs">{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                        <span className="text-2xl font-bold">{dateObj.getDate()}</span>
+                        <span className="text-xs">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time Selection */}
+              {selectedDate && (
+                <div className="glass-card p-6 animate-slide-up">
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-primary" />
-                    Select Date
+                    <Clock className="w-5 h-5 text-primary" />
+                    Select Showtime
                   </h2>
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {dates.map(date => {
-                      const dateObj = new Date(date);
-                      const isSelected = selectedDate === date;
-                      return (
-                        <button
-                          key={date}
-                          onClick={() => {
-                            setSelectedDate(date);
-                            setSelectedShowtime(null);
-                            setSelectedSeats([]);
-                          }}
-                          className={`flex-shrink-0 w-16 h-20 rounded-xl flex flex-col items-center justify-center transition-all ${
-                            isSelected
-                              ? 'bg-primary text-primary-foreground'
-                              : 'bg-secondary hover:bg-secondary/80'
-                          }`}
-                        >
-                          <span className="text-xs">{dateObj.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                          <span className="text-2xl font-bold">{dateObj.getDate()}</span>
-                          <span className="text-xs">{dateObj.toLocaleDateString('en-US', { month: 'short' })}</span>
-                        </button>
-                      );
-                    })}
+                  <div className="flex flex-wrap gap-3">
+                    {movieShowtimes
+                      .filter(st => st.date === selectedDate)
+                      .map(st => {
+                        const hall = halls.find(h => h.id === st.hallId);
+                        const isSelected = selectedShowtime === st.id;
+                        return (
+                          <button
+                            key={st.id}
+                            onClick={() => {
+                              setSelectedShowtime(st.id);
+                              setSelectedSeats([]);
+                            }}
+                            className={`px-4 py-3 rounded-xl text-left transition-all ${
+                              isSelected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-secondary hover:bg-secondary/80'
+                            }`}
+                          >
+                            <div className="font-bold">{st.time}</div>
+                            <div className="text-xs opacity-80">{hall?.name}</div>
+                            <div className="text-xs opacity-60">From ৳{st.price.normal}</div>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
+              )}
 
-                {/* Time Selection */}
-                {selectedDate && (
-                  <div className="glass-card p-6 animate-slide-up">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-primary" />
-                      Select Showtime
-                    </h2>
-                    <div className="flex flex-wrap gap-3">
-                      {movieShowtimes
-                        .filter(st => st.date === selectedDate)
-                        .map(st => {
-                          const hall = halls.find(h => h.id === st.hallId);
-                          const isSelected = selectedShowtime === st.id;
-                          return (
-                            <button
-                              key={st.id}
-                              onClick={() => {
-                                setSelectedShowtime(st.id);
-                                setSelectedSeats([]);
-                              }}
-                              className={`px-4 py-3 rounded-xl text-left transition-all ${
-                                isSelected
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-secondary hover:bg-secondary/80'
-                              }`}
-                            >
-                              <div className="font-bold">{st.time}</div>
-                              <div className="text-xs opacity-80">{hall?.name}</div>
-                              <div className="text-xs opacity-60">From ৳{st.price.normal}</div>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
+              {/* Seat Map */}
+              {currentShowtime && currentHall && (
+                <div className="glass-card p-6 animate-slide-up">
+                  <h2 className="text-lg font-semibold mb-4">Select Your Seats</h2>
+                  <SeatMap
+                    seats={currentShowtime.availableSeats}
+                    selectedSeats={selectedSeats}
+                    onSeatSelect={handleSeatSelect}
+                    rows={currentHall.rows}
+                    seatsPerRow={currentHall.seatsPerRow}
+                  />
+                </div>
+              )}
+            </div>
 
-                {/* Seat Map */}
-                {currentShowtime && currentHall && (
-                  <div className="glass-card p-6 animate-slide-up">
-                    <h2 className="text-lg font-semibold mb-4">Select Your Seats</h2>
-                    <SeatMap
-                      seats={currentShowtime.availableSeats}
-                      selectedSeats={selectedSeats}
-                      onSeatSelect={handleSeatSelect}
-                      rows={currentHall.rows}
-                      seatsPerRow={currentHall.seatsPerRow}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Booking Summary */}
-              <div className="lg:col-span-1">
-                <BookingSummary
-                  type="movie"
-                  selectedSeats={selectedSeats}
-                  prices={currentShowtime?.price}
-                  isFreeShow={isFreeShow}
-                  onPromoApply={setDiscount}
-                  onProceed={handleProceed}
-                />
-              </div>
+            {/* Booking Summary */}
+            <div className="lg:col-span-1">
+              <BookingSummary
+                type="movie"
+                selectedSeats={selectedSeats}
+                prices={currentShowtime?.price}
+                isFreeShow={isFreeShow}
+                onPromoApply={setDiscount}
+                onProceed={handleProceed}
+              />
             </div>
           </div>
-        </main>
-        
-        <Footer />
-      </div>
+        </div>
+      </main>
+      
+      <Footer />
 
       {/* Ticket Receipt Modal */}
       {showReceipt && currentShowtime && currentHall && (
@@ -298,7 +296,7 @@ const MovieDetail: React.FC = () => {
           }}
         />
       )}
-    </>
+    </div>
   );
 };
 

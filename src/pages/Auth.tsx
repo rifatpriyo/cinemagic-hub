@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +40,10 @@ const Auth: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+
+  useEffect(() => {
+    document.title = isLogin ? 'Sign In - TixWix' : 'Create Account - TixWix';
+  }, [isLogin]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -116,159 +119,153 @@ const Auth: React.FC = () => {
   };
 
   return (
-    <>
-      <Helmet>
-        <title>{isLogin ? 'Sign In' : 'Create Account'} - TixWix</title>
-      </Helmet>
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden px-4">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
+      </div>
 
-      <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden px-4">
-        {/* Background Effects */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl" />
-        </div>
+      <div className="w-full max-w-md relative z-10">
+        {/* Back to Home */}
+        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
 
-        <div className="w-full max-w-md relative z-10">
-          {/* Back to Home */}
-          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
-
-          <div className="glass-card p-8">
-            {/* Logo */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-gold-dark flex items-center justify-center shadow-lg">
-                <Ticket className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-bold text-gradient-gold">TixWix</span>
+        <div className="glass-card p-8">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
+              <Ticket className="w-6 h-6 text-primary-foreground" />
             </div>
+            <span className="text-2xl font-bold text-gradient-gold">TixWix</span>
+          </div>
 
-            <h1 className="text-2xl font-bold text-center mb-2">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
-            </h1>
-            <p className="text-muted-foreground text-center mb-8">
-              {isLogin
-                ? 'Sign in to continue booking'
-                : 'Join us for the best entertainment'}
-            </p>
+          <h1 className="text-2xl font-bold text-center mb-2">
+            {isLogin ? 'Welcome Back' : 'Create Account'}
+          </h1>
+          <p className="text-muted-foreground text-center mb-8">
+            {isLogin
+              ? 'Sign in to continue booking'
+              : 'Join us for the best entertainment'}
+          </p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      name="name"
-                      placeholder="Enter your name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="pl-10"
-                    />
-                  </div>
-                  {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
-                </div>
-              )}
-
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
+                    id="name"
+                    name="name"
+                    placeholder="Enter your name"
+                    value={formData.name}
                     onChange={handleChange}
                     className="pl-10"
                   />
                 </div>
-                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
               </div>
+            )}
 
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="pl-10"
+                />
+              </div>
+              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="pl-10 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+            </div>
+
+            {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    value={formData.password}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="pl-10 pr-10"
+                    className="pl-10"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
                 </div>
-                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
               </div>
+            )}
 
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      placeholder="Confirm your password"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className="pl-10"
-                    />
-                  </div>
-                  {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
-                </div>
-              )}
+            <Button
+              type="submit"
+              variant="gold"
+              className="w-full"
+              size="lg"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+            </Button>
+          </form>
 
-              <Button
-                type="submit"
-                variant="gold"
-                className="w-full"
-                size="lg"
-                disabled={isLoading}
+          <div className="mt-6 text-center">
+            <p className="text-muted-foreground">
+              {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-primary hover:underline font-medium"
               >
-                {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
-              </Button>
-            </form>
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+          </div>
 
-            <div className="mt-6 text-center">
-              <p className="text-muted-foreground">
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-                <button
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  {isLogin ? 'Sign up' : 'Sign in'}
-                </button>
-              </p>
-            </div>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-secondary/50 rounded-lg text-sm">
-              <p className="font-medium text-center mb-2">Demo Credentials</p>
-              <p className="text-muted-foreground text-center">
-                Admin: admin@tixwix.com / admin123
-              </p>
-              <p className="text-muted-foreground text-center">
-                Or sign up with any email
-              </p>
-            </div>
+          {/* Demo Credentials */}
+          <div className="mt-6 p-4 bg-secondary/50 rounded-lg text-sm">
+            <p className="font-medium text-center mb-2">Demo Credentials</p>
+            <p className="text-muted-foreground text-center">
+              Admin: admin@tixwix.com / admin123
+            </p>
+            <p className="text-muted-foreground text-center">
+              Or sign up with any email
+            </p>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
