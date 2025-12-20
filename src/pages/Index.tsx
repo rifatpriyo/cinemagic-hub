@@ -1,13 +1,31 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React from 'react';
+import { Helmet } from 'react-helmet-async';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
+import HeroSection from '@/components/home/HeroSection';
+import FeaturedMovies from '@/components/home/FeaturedMovies';
+import FeaturedConcerts from '@/components/home/FeaturedConcerts';
+import PromoSection from '@/components/home/PromoSection';
 
-const Index = () => {
+const Index: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <>
+      <Helmet>
+        <title>TixWix - Book Movie & Concert Tickets in Bangladesh</title>
+        <meta name="description" content="Book movie tickets and concert passes at TixWix Cinema Complex. Experience IMAX, 4DX, Dolby Atmos and live concerts in Dhaka, Bangladesh." />
+      </Helmet>
+      
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 pt-16">
+          <HeroSection />
+          <FeaturedMovies />
+          <FeaturedConcerts />
+          <PromoSection />
+        </main>
+        <Footer />
       </div>
-    </div>
+    </>
   );
 };
 
