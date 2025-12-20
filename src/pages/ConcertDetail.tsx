@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import ConcertSectionSelector from '@/components/booking/ConcertSectionSelector';
@@ -26,6 +25,12 @@ const ConcertDetail: React.FC = () => {
   const [discount, setDiscount] = useState(0);
   const [showReceipt, setShowReceipt] = useState(false);
   const [bookingId, setBookingId] = useState('');
+
+  useEffect(() => {
+    if (concert) {
+      document.title = `${concert.title} - Book Tickets at TixWix`;
+    }
+  }, [concert]);
 
   // Check if user gets free show (5th show in a month)
   const isFreeShow = user && user.monthlyBookingCount >= 4;
@@ -85,99 +90,92 @@ const ConcertDetail: React.FC = () => {
   }
 
   return (
-    <>
-      <Helmet>
-        <title>{concert.title} - Book Tickets at TixWix</title>
-        <meta name="description" content={concert.description} />
-      </Helmet>
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      
+      <main className="flex-1 pt-16">
+        {/* Hero Banner */}
+        <div className="relative h-[40vh] min-h-[300px] overflow-hidden">
+          <img
+            src={concert.backdrop || concert.poster}
+            alt={concert.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
+        </div>
 
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        
-        <main className="flex-1 pt-16">
-          {/* Hero Banner */}
-          <div className="relative h-[40vh] min-h-[300px] overflow-hidden">
-            <img
-              src={concert.backdrop || concert.poster}
-              alt={concert.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
-          </div>
-
-          <div className="container mx-auto px-4 -mt-32 relative z-10">
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Concert Poster */}
-              <div className="flex-shrink-0">
-                <img
-                  src={concert.poster}
-                  alt={concert.title}
-                  className="w-48 md:w-64 rounded-xl shadow-2xl border-2 border-border"
-                />
-              </div>
-
-              {/* Concert Info */}
-              <div className="flex-1 space-y-4">
-                <Badge className="bg-accent text-accent-foreground">
-                  <Music className="w-3 h-3 mr-1" />
-                  {concert.genre}
-                </Badge>
-                
-                <h1 className="text-3xl md:text-4xl font-bold">{concert.title}</h1>
-                <p className="text-xl text-muted-foreground">{concert.artist}</p>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4 text-accent" />
-                    <span>{formatDate(concert.date)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="w-4 h-4 text-accent" />
-                    <span>{concert.time}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="w-4 h-4 text-accent" />
-                    <span>{conventionHall?.name || 'Convention Hall'}</span>
-                  </div>
-                </div>
-
-                <p className="text-muted-foreground max-w-2xl">{concert.description}</p>
-              </div>
+        <div className="container mx-auto px-4 -mt-32 relative z-10">
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Concert Poster */}
+            <div className="flex-shrink-0">
+              <img
+                src={concert.poster}
+                alt={concert.title}
+                className="w-48 md:w-64 rounded-xl shadow-2xl border-2 border-border"
+              />
             </div>
 
-            {/* Booking Section */}
-            <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8 pb-16">
-              <div className="lg:col-span-2">
-                <div className="glass-card p-6">
-                  <h2 className="text-lg font-semibold mb-6">Select Your Section</h2>
-                  <ConcertSectionSelector
-                    sections={concert.sections}
-                    selectedSection={selectedSection}
-                    quantity={quantity}
-                    onSectionSelect={setSelectedSection}
-                    onQuantityChange={setQuantity}
-                  />
+            {/* Concert Info */}
+            <div className="flex-1 space-y-4">
+              <Badge className="bg-accent text-accent-foreground">
+                <Music className="w-3 h-3 mr-1" />
+                {concert.genre}
+              </Badge>
+              
+              <h1 className="text-3xl md:text-4xl font-bold">{concert.title}</h1>
+              <p className="text-xl text-muted-foreground">{concert.artist}</p>
+              
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Calendar className="w-4 h-4 text-accent" />
+                  <span>{formatDate(concert.date)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4 text-accent" />
+                  <span>{concert.time}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="w-4 h-4 text-accent" />
+                  <span>{conventionHall?.name || 'Convention Hall'}</span>
                 </div>
               </div>
 
-              {/* Booking Summary */}
-              <div className="lg:col-span-1">
-                <BookingSummary
-                  type="concert"
+              <p className="text-muted-foreground max-w-2xl">{concert.description}</p>
+            </div>
+          </div>
+
+          {/* Booking Section */}
+          <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8 pb-16">
+            <div className="lg:col-span-2">
+              <div className="glass-card p-6">
+                <h2 className="text-lg font-semibold mb-6">Select Your Section</h2>
+                <ConcertSectionSelector
+                  sections={concert.sections}
                   selectedSection={selectedSection}
                   quantity={quantity}
-                  isFreeShow={isFreeShow}
-                  onPromoApply={setDiscount}
-                  onProceed={handleProceed}
+                  onSectionSelect={setSelectedSection}
+                  onQuantityChange={setQuantity}
                 />
               </div>
             </div>
+
+            {/* Booking Summary */}
+            <div className="lg:col-span-1">
+              <BookingSummary
+                type="concert"
+                selectedSection={selectedSection}
+                quantity={quantity}
+                isFreeShow={isFreeShow}
+                onPromoApply={setDiscount}
+                onProceed={handleProceed}
+              />
+            </div>
           </div>
-        </main>
-        
-        <Footer />
-      </div>
+        </div>
+      </main>
+      
+      <Footer />
 
       {/* Ticket Receipt Modal */}
       {showReceipt && selectedSection && (
@@ -199,7 +197,7 @@ const ConcertDetail: React.FC = () => {
           }}
         />
       )}
-    </>
+    </div>
   );
 };
 
