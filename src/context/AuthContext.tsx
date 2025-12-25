@@ -21,7 +21,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  addBooking: (booking: Booking) => Promise<boolean>;
+  addBooking: (booking: Booking) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -202,15 +202,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // Add booking to user's bookings - saves to Supabase database
-  const addBooking = async (booking: Booking): Promise<boolean> => {
-    if (!user) return false;
+  // Returns the generated booking ID on success, or null on failure
+  const addBooking = async (booking: Booking): Promise<string | null> => {
+    if (!user) return null;
 
     try {
-      // Insert booking into Supabase
+      // Insert booking into Supabase (let DB generate the UUID)
       const { data: newBooking, error } = await supabase
         .from('bookings')
         .insert({
-          id: booking.id,
           user_id: user.id,
           type: booking.type,
           show_id: booking.showId,
@@ -227,7 +227,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (error) {
         console.error('Error saving booking:', error);
-        return false;
+        return null;
       }
 
       // Update monthly booking count in profiles table
@@ -237,17 +237,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .update({ monthly_booking_count: newCount })
         .eq('id', user.id);
 
-      // Update local state
+      // Update local state with the new booking using DB-generated ID
+      const savedBooking = { ...booking, id: newBooking.id };
       setUser({
         ...user,
-        bookings: [...user.bookings, booking],
+        bookings: [...user.bookings, savedBooking],
         monthlyBookingCount: newCount,
       });
 
-      return true;
+      return newBooking.id;
     } catch (error) {
       console.error('Error in addBooking:', error);
-      return false;
+      return null;
     }
   };
 
