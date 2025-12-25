@@ -67,10 +67,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addBooking = (booking: Booking) => {
     if (user) {
+      // After the 5th show (free show), reset the cycle back to 0
+      const newCount = user.monthlyBookingCount >= 4 ? 0 : user.monthlyBookingCount + 1;
       setUser({
         ...user,
         bookings: [...user.bookings, booking],
-        monthlyBookingCount: user.monthlyBookingCount + 1,
+        monthlyBookingCount: newCount,
       });
     }
   };
