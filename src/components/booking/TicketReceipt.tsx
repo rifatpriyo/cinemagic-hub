@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Seat, ConcertSection } from '@/types';
 import { QrCode, Download, Calendar, Clock, MapPin, User, Film, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import html2canvas from 'html2canvas';
+import { toast } from 'sonner';
 
 interface TicketReceiptProps {
   type: 'movie' | 'concert';
@@ -38,6 +40,8 @@ const TicketReceipt: React.FC<TicketReceiptProps> = ({
   freeTicketsCount = 0,
   onClose,
 }) => {
+  const ticketRef = useRef<HTMLDivElement>(null);
+
   const formatDate = (dateStr: string) => {
     const dateObj = new Date(dateStr);
     return dateObj.toLocaleDateString('en-US', {
@@ -48,9 +52,38 @@ const TicketReceipt: React.FC<TicketReceiptProps> = ({
     });
   };
 
+  const handleDownload = async () => {
+    if (!ticketRef.current) return;
+
+    try {
+      toast.loading('Generating ticket image...');
+      
+      const canvas = await html2canvas(ticketRef.current, {
+        useCORS: true,
+        logging: false,
+      } as any);
+
+      // Convert to JPG and download
+      const link = document.createElement('a');
+      link.download = `TixWix-Ticket-${bookingId}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+
+      toast.dismiss();
+      toast.success('Ticket downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading ticket:', error);
+      toast.dismiss();
+      toast.error('Failed to download ticket. Please try again.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card border border-border rounded-2xl max-w-md w-full overflow-hidden animate-scale-in">
+      <div 
+        ref={ticketRef}
+        className="bg-card border border-border rounded-2xl max-w-md w-full overflow-hidden animate-scale-in"
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-primary to-gold-dark p-6 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -164,7 +197,7 @@ const TicketReceipt: React.FC<TicketReceiptProps> = ({
             <Button variant="outline" className="flex-1" onClick={onClose}>
               Close
             </Button>
-            <Button variant="gold" className="flex-1">
+            <Button variant="gold" className="flex-1" onClick={handleDownload}>
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
