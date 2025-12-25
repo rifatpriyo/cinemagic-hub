@@ -37,7 +37,7 @@ const ConcertDetail: React.FC = () => {
   const isFreeShow = user && user.monthlyBookingCount >= 4;
   const FREE_TICKETS_LIMIT = 2;
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!isAuthenticated) {
       toast.error('Please login to book tickets');
       navigate('/auth');
@@ -61,8 +61,8 @@ const ConcertDetail: React.FC = () => {
     const newBookingId = `TIX${Date.now().toString().slice(-8)}`;
     setBookingId(newBookingId);
 
-    // Add booking to user's history
-    addBooking({
+    // Add booking to user's history and save to database
+    const success = await addBooking({
       id: newBookingId,
       userId: user!.id,
       type: 'concert',
@@ -76,8 +76,12 @@ const ConcertDetail: React.FC = () => {
       status: 'confirmed',
     });
 
-    setShowReceipt(true);
-    toast.success('Booking confirmed!');
+    if (success) {
+      setShowReceipt(true);
+      toast.success('Booking confirmed!');
+    } else {
+      toast.error('Failed to save booking. Please try again.');
+    }
   };
 
   const formatDate = (dateStr: string) => {

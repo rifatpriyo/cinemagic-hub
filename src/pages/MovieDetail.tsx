@@ -64,7 +64,7 @@ const MovieDetail: React.FC = () => {
     });
   };
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!isAuthenticated) {
       toast.error('Please login to book tickets');
       navigate('/auth');
@@ -94,8 +94,8 @@ const MovieDetail: React.FC = () => {
     const newBookingId = `TIX${Date.now().toString().slice(-8)}`;
     setBookingId(newBookingId);
 
-    // Add booking to user's history
-    addBooking({
+    // Add booking to user's history and save to database
+    const success = await addBooking({
       id: newBookingId,
       userId: user!.id,
       type: 'movie',
@@ -108,8 +108,12 @@ const MovieDetail: React.FC = () => {
       status: 'confirmed',
     });
 
-    setShowReceipt(true);
-    toast.success('Booking confirmed!');
+    if (success) {
+      setShowReceipt(true);
+      toast.success('Booking confirmed!');
+    } else {
+      toast.error('Failed to save booking. Please try again.');
+    }
   };
 
   if (!movie) {
