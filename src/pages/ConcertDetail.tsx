@@ -5,20 +5,49 @@ import Footer from '@/components/layout/Footer';
 import ConcertSectionSelector from '@/components/booking/ConcertSectionSelector';
 import BookingSummary from '@/components/booking/BookingSummary';
 import TicketReceipt from '@/components/booking/TicketReceipt';
-import { concerts, halls } from '@/data/mockData';
 import { ConcertSection } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Music } from 'lucide-react';
+import { Calendar, Clock, MapPin, Music, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Concert {
+  id: string;
+  title: string;
+  artist: string;
+  poster: string;
+  backdrop?: string;
+  genre: string;
+  date: string;
+  time: string;
+  description: string;
+}
+
+interface Hall {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface DbConcertSection {
+  id: string;
+  concert_id: string;
+  name: string;
+  price: number;
+  total_capacity: number;
+  available_capacity: number;
+}
 
 const ConcertDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, addBooking } = useAuth();
 
-  const concert = concerts.find(c => c.id === id);
-  const conventionHall = halls.find(h => h.type === 'concert');
+  const [concert, setConcert] = useState<Concert | null>(null);
+  const [sections, setSections] = useState<ConcertSection[]>([]);
+  const [conventionHall, setConventionHall] = useState<Hall | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [selectedSection, setSelectedSection] = useState<ConcertSection | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -27,13 +56,64 @@ const ConcertDetail: React.FC = () => {
   const [bookingId, setBookingId] = useState('');
 
   useEffect(() => {
-    if (concert) {
-      document.title = `${concert.title} - Book Tickets at TixWix`;
+    if (id) {
+      fetchConcertData();
     }
-  }, [concert]);
+  }, [id]);
 
-  // Check if user gets free show (5th show in a month - after 4 bookings)
-  // Only first 2 tickets are free
+  const fetchConcertData = async () => {
+    try {
+      // Fetch concert
+      const { data: concertData, error: concertError } = await supabase
+        .from('concerts')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (concertError) throw concertError;
+      if (!concertData) {
+        setIsLoading(false);
+        return;
+      }
+      setConcert(concertData);
+      document.title = `${concertData.title} - Book Tickets at TixWix`;
+
+      // Fetch sections
+      const { data: sectionsData, error: sectionsError } = await supabase
+        .from('concert_sections')
+        .select('*')
+        .eq('concert_id', id);
+
+      if (sectionsError) throw sectionsError;
+
+      // Transform sections to component format
+      const transformedSections: ConcertSection[] = (sectionsData || []).map((s: DbConcertSection) => ({
+        id: s.id,
+        name: s.name,
+        price: Number(s.price),
+        totalCapacity: s.total_capacity,
+        availableCapacity: s.available_capacity,
+      }));
+      setSections(transformedSections);
+
+      // Fetch convention hall
+      const { data: hallData, error: hallError } = await supabase
+        .from('halls')
+        .select('*')
+        .eq('type', 'concert')
+        .maybeSingle();
+
+      if (!hallError && hallData) {
+        setConventionHall(hallData);
+      }
+    } catch (error) {
+      console.error('Error fetching concert data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check if user gets free show
   const isFreeShow = user && user.monthlyBookingCount >= 4;
   const FREE_TICKETS_LIMIT = 2;
 
@@ -46,7 +126,13 @@ const ConcertDetail: React.FC = () => {
 
     if (!selectedSection || !concert) return;
 
-    // Calculate final price - only first 2 tickets are free if isFreeShow
+    // Check available capacity
+    if (selectedSection.availableCapacity < quantity) {
+      toast.error('Not enough tickets available in this section');
+      return;
+    }
+
+    // Calculate final price
     const subtotal = selectedSection.price * quantity;
     let finalPrice = subtotal;
     if (isFreeShow) {
@@ -60,6 +146,19 @@ const ConcertDetail: React.FC = () => {
     // Generate booking ID
     const newBookingId = `TIX${Date.now().toString().slice(-8)}`;
     setBookingId(newBookingId);
+
+    // Update section capacity
+    const newAvailableCapacity = selectedSection.availableCapacity - quantity;
+    const { error: updateError } = await supabase
+      .from('concert_sections')
+      .update({ available_capacity: newAvailableCapacity })
+      .eq('id', selectedSection.id);
+
+    if (updateError) {
+      console.error('Error updating section capacity:', updateError);
+      toast.error('Failed to reserve tickets. Please try again.');
+      return;
+    }
 
     // Add booking to user's history and save to database
     const success = await addBooking({
@@ -77,9 +176,20 @@ const ConcertDetail: React.FC = () => {
     });
 
     if (success) {
+      // Update local state
+      setSections(prev => prev.map(s => 
+        s.id === selectedSection.id 
+          ? { ...s, availableCapacity: newAvailableCapacity }
+          : s
+      ));
       setShowReceipt(true);
       toast.success('Booking confirmed!');
     } else {
+      // Revert capacity if booking failed
+      await supabase
+        .from('concert_sections')
+        .update({ available_capacity: selectedSection.availableCapacity })
+        .eq('id', selectedSection.id);
       toast.error('Failed to save booking. Please try again.');
     }
   };
@@ -93,6 +203,18 @@ const ConcertDetail: React.FC = () => {
       day: 'numeric',
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!concert) {
     return (
@@ -164,7 +286,7 @@ const ConcertDetail: React.FC = () => {
               <div className="glass-card p-6">
                 <h2 className="text-lg font-semibold mb-6">Select Your Section</h2>
                 <ConcertSectionSelector
-                  sections={concert.sections}
+                  sections={sections}
                   selectedSection={selectedSection}
                   quantity={quantity}
                   onSectionSelect={setSelectedSection}

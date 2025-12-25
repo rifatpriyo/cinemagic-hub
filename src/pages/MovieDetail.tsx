@@ -5,23 +5,71 @@ import Footer from '@/components/layout/Footer';
 import SeatMap from '@/components/booking/SeatMap';
 import BookingSummary from '@/components/booking/BookingSummary';
 import TicketReceipt from '@/components/booking/TicketReceipt';
-import { movies, showtimes, halls } from '@/data/mockData';
 import { Seat } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, Clock, Calendar, Play } from 'lucide-react';
+import { Star, Clock, Calendar, Play, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  backdrop?: string;
+  genre: string[];
+  duration: number;
+  rating: number;
+  release_date: string;
+  description: string;
+  director: string;
+  cast_members: string[];
+  language: string;
+  trailer_url?: string;
+}
+
+interface Showtime {
+  id: string;
+  movie_id: string;
+  hall_id: string;
+  date: string;
+  time: string;
+  price_normal: number;
+  price_deluxe: number;
+  price_super: number;
+}
+
+interface Hall {
+  id: string;
+  name: string;
+  type: string;
+  total_seats: number;
+  rows: number;
+  seats_per_row: number;
+}
+
+interface DbSeat {
+  id: string;
+  showtime_id: string;
+  row_letter: string;
+  seat_number: number;
+  type: string;
+  status: string;
+}
 
 const MovieDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, addBooking } = useAuth();
 
-  const movie = movies.find(m => m.id === id);
-  const movieShowtimes = showtimes.filter(st => st.movieId === id);
+  const [movie, setMovie] = useState<Movie | null>(null);
+  const [showtimes, setShowtimes] = useState<Showtime[]>([]);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [currentSeats, setCurrentSeats] = useState<DbSeat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [selectedDate, setSelectedDate] = useState<string>(movieShowtimes[0]?.date || '');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedShowtime, setSelectedShowtime] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -29,26 +77,105 @@ const MovieDetail: React.FC = () => {
   const [bookingId, setBookingId] = useState('');
 
   useEffect(() => {
-    if (movie) {
-      document.title = `${movie.title} - Book Tickets at TixWix`;
+    if (id) {
+      fetchMovieData();
     }
-  }, [movie]);
+  }, [id]);
 
-  const currentShowtime = useMemo(() => {
-    return showtimes.find(st => st.id === selectedShowtime);
+  const fetchMovieData = async () => {
+    try {
+      // Fetch movie
+      const { data: movieData, error: movieError } = await supabase
+        .from('movies')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (movieError) throw movieError;
+      if (!movieData) {
+        setIsLoading(false);
+        return;
+      }
+      setMovie(movieData);
+      document.title = `${movieData.title} - Book Tickets at TixWix`;
+
+      // Fetch showtimes for this movie
+      const { data: showtimesData, error: showtimesError } = await supabase
+        .from('showtimes')
+        .select('*')
+        .eq('movie_id', id)
+        .order('date', { ascending: true });
+
+      if (showtimesError) throw showtimesError;
+      setShowtimes(showtimesData || []);
+
+      // Set default selected date
+      if (showtimesData && showtimesData.length > 0) {
+        setSelectedDate(showtimesData[0].date);
+      }
+
+      // Fetch halls
+      const { data: hallsData, error: hallsError } = await supabase
+        .from('halls')
+        .select('*');
+
+      if (hallsError) throw hallsError;
+      setHalls(hallsData || []);
+    } catch (error) {
+      console.error('Error fetching movie data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch seats when showtime changes
+  useEffect(() => {
+    if (selectedShowtime) {
+      fetchSeats(selectedShowtime);
+    }
   }, [selectedShowtime]);
 
+  const fetchSeats = async (showtimeId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('seats')
+        .select('*')
+        .eq('showtime_id', showtimeId)
+        .order('row_letter')
+        .order('seat_number');
+
+      if (error) throw error;
+      setCurrentSeats(data || []);
+    } catch (error) {
+      console.error('Error fetching seats:', error);
+    }
+  };
+
+  const currentShowtimeObj = useMemo(() => {
+    return showtimes.find(st => st.id === selectedShowtime);
+  }, [selectedShowtime, showtimes]);
+
   const currentHall = useMemo(() => {
-    if (!currentShowtime) return null;
-    return halls.find(h => h.id === currentShowtime.hallId);
-  }, [currentShowtime]);
+    if (!currentShowtimeObj) return null;
+    return halls.find(h => h.id === currentShowtimeObj.hall_id);
+  }, [currentShowtimeObj, halls]);
+
+  // Transform DB seats to component format
+  const transformedSeats: Seat[] = useMemo(() => {
+    return currentSeats.map(seat => ({
+      id: seat.id,
+      row: seat.row_letter,
+      number: seat.seat_number,
+      type: seat.type as 'normal' | 'deluxe' | 'super',
+      status: seat.status as 'available' | 'selected' | 'sold',
+    }));
+  }, [currentSeats]);
 
   // Check if user gets free show (5th show in a month - after 4 bookings)
-  // Only first 2 seats are free
   const isFreeShow = user && user.monthlyBookingCount >= 4;
   const FREE_SEATS_LIMIT = 2;
 
-  const dates = [...new Set(movieShowtimes.map(st => st.date))];
+  const dates = [...new Set(showtimes.map(st => st.date))];
 
   const handleSeatSelect = (seat: Seat) => {
     setSelectedSeats(prev => {
@@ -71,19 +198,24 @@ const MovieDetail: React.FC = () => {
       return;
     }
 
-    if (!currentShowtime || selectedSeats.length === 0) return;
+    if (!currentShowtimeObj || selectedSeats.length === 0) return;
 
-    // Calculate final price - only first 2 seats are free if isFreeShow
+    const prices = {
+      normal: currentShowtimeObj.price_normal,
+      deluxe: currentShowtimeObj.price_deluxe,
+      super: currentShowtimeObj.price_super,
+    };
+
+    // Calculate final price
     const subtotal = selectedSeats.reduce((total, seat) => {
-      return total + currentShowtime.price[seat.type];
+      return total + prices[seat.type];
     }, 0);
     
     let finalPrice = subtotal;
     if (isFreeShow) {
-      // Calculate free amount (only first 2 seats are free)
       const freeSeats = selectedSeats.slice(0, FREE_SEATS_LIMIT);
       const freeAmount = freeSeats.reduce((total, seat) => {
-        return total + currentShowtime.price[seat.type];
+        return total + prices[seat.type];
       }, 0);
       finalPrice = Math.max(0, subtotal - freeAmount - discount);
     } else {
@@ -94,12 +226,25 @@ const MovieDetail: React.FC = () => {
     const newBookingId = `TIX${Date.now().toString().slice(-8)}`;
     setBookingId(newBookingId);
 
+    // Update seat statuses to 'sold'
+    const seatIds = selectedSeats.map(s => s.id);
+    const { error: seatUpdateError } = await supabase
+      .from('seats')
+      .update({ status: 'sold' })
+      .in('id', seatIds);
+
+    if (seatUpdateError) {
+      console.error('Error updating seat status:', seatUpdateError);
+      toast.error('Failed to reserve seats. Please try again.');
+      return;
+    }
+
     // Add booking to user's history and save to database
     const success = await addBooking({
       id: newBookingId,
       userId: user!.id,
       type: 'movie',
-      showId: currentShowtime.id,
+      showId: currentShowtimeObj.id,
       seats: selectedSeats,
       totalPrice: subtotal,
       discount,
@@ -109,12 +254,37 @@ const MovieDetail: React.FC = () => {
     });
 
     if (success) {
+      // Insert booking seats
+      const bookingSeatsData = selectedSeats.map(seat => ({
+        booking_id: newBookingId,
+        seat_id: seat.id,
+      }));
+
+      await supabase.from('booking_seats').insert(bookingSeatsData);
+
       setShowReceipt(true);
       toast.success('Booking confirmed!');
     } else {
+      // Revert seat status if booking failed
+      await supabase
+        .from('seats')
+        .update({ status: 'available' })
+        .in('id', seatIds);
       toast.error('Failed to save booking. Please try again.');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!movie) {
     return (
@@ -164,7 +334,7 @@ const MovieDetail: React.FC = () => {
                   <Clock className="w-4 h-4" />
                   <span>{Math.floor(movie.duration / 60)}h {movie.duration % 60}m</span>
                 </div>
-                <span className="text-muted-foreground">{movie.releaseDate.split('-')[0]}</span>
+                <span className="text-muted-foreground">{movie.release_date.split('-')[0]}</span>
                 <span className="text-muted-foreground">{movie.language}</span>
               </div>
 
@@ -178,10 +348,10 @@ const MovieDetail: React.FC = () => {
 
               <div className="text-sm text-muted-foreground">
                 <p><span className="text-foreground">Director:</span> {movie.director}</p>
-                <p><span className="text-foreground">Cast:</span> {movie.cast.join(', ')}</p>
+                <p><span className="text-foreground">Cast:</span> {movie.cast_members.join(', ')}</p>
               </div>
 
-              {movie.trailerUrl && (
+              {movie.trailer_url && (
                 <Button variant="outline" className="gap-2">
                   <Play className="w-4 h-4" />
                   Watch Trailer
@@ -234,10 +404,10 @@ const MovieDetail: React.FC = () => {
                     Select Showtime
                   </h2>
                   <div className="flex flex-wrap gap-3">
-                    {movieShowtimes
+                    {showtimes
                       .filter(st => st.date === selectedDate)
                       .map(st => {
-                        const hall = halls.find(h => h.id === st.hallId);
+                        const hall = halls.find(h => h.id === st.hall_id);
                         const isSelected = selectedShowtime === st.id;
                         return (
                           <button
@@ -254,7 +424,7 @@ const MovieDetail: React.FC = () => {
                           >
                             <div className="font-bold">{st.time}</div>
                             <div className="text-xs opacity-80">{hall?.name}</div>
-                            <div className="text-xs opacity-60">From ৳{st.price.normal}</div>
+                            <div className="text-xs opacity-60">From ৳{st.price_normal}</div>
                           </button>
                         );
                       })}
@@ -263,15 +433,15 @@ const MovieDetail: React.FC = () => {
               )}
 
               {/* Seat Map */}
-              {currentShowtime && currentHall && (
+              {currentShowtimeObj && currentHall && (
                 <div className="glass-card p-6 animate-slide-up">
                   <h2 className="text-lg font-semibold mb-4">Select Your Seats</h2>
                   <SeatMap
-                    seats={currentShowtime.availableSeats}
+                    seats={transformedSeats}
                     selectedSeats={selectedSeats}
                     onSeatSelect={handleSeatSelect}
                     rows={currentHall.rows}
-                    seatsPerRow={currentHall.seatsPerRow}
+                    seatsPerRow={currentHall.seats_per_row}
                   />
                 </div>
               )}
@@ -282,7 +452,11 @@ const MovieDetail: React.FC = () => {
               <BookingSummary
                 type="movie"
                 selectedSeats={selectedSeats}
-                prices={currentShowtime?.price}
+                prices={currentShowtimeObj ? {
+                  normal: currentShowtimeObj.price_normal,
+                  deluxe: currentShowtimeObj.price_deluxe,
+                  super: currentShowtimeObj.price_super,
+                } : undefined}
                 isFreeShow={isFreeShow}
                 freeSeatsLimit={FREE_SEATS_LIMIT}
                 onPromoApply={setDiscount}
@@ -296,21 +470,26 @@ const MovieDetail: React.FC = () => {
       <Footer />
 
       {/* Ticket Receipt Modal */}
-        {showReceipt && currentShowtime && currentHall && (
+      {showReceipt && currentShowtimeObj && currentHall && (
         <TicketReceipt
           type="movie"
           title={movie.title}
           hallName={currentHall.name}
-          date={currentShowtime.date}
-          time={currentShowtime.time}
+          date={currentShowtimeObj.date}
+          time={currentShowtimeObj.time}
           seats={selectedSeats}
           userName={user?.name || 'Guest'}
           bookingId={bookingId}
           totalPrice={(() => {
-            const subtotal = selectedSeats.reduce((t, s) => t + currentShowtime.price[s.type], 0);
+            const prices = {
+              normal: currentShowtimeObj.price_normal,
+              deluxe: currentShowtimeObj.price_deluxe,
+              super: currentShowtimeObj.price_super,
+            };
+            const subtotal = selectedSeats.reduce((t, s) => t + prices[s.type], 0);
             if (isFreeShow) {
               const freeSeats = selectedSeats.slice(0, FREE_SEATS_LIMIT);
-              const freeAmount = freeSeats.reduce((t, s) => t + currentShowtime.price[s.type], 0);
+              const freeAmount = freeSeats.reduce((t, s) => t + prices[s.type], 0);
               return Math.max(0, subtotal - freeAmount - discount);
             }
             return Math.max(0, subtotal - discount);
