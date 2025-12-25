@@ -2,20 +2,61 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import MovieCard from '@/components/movies/MovieCard';
-import { movies, genres } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, Filter, X, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Movie {
+  id: string;
+  title: string;
+  poster: string;
+  backdrop?: string;
+  genre: string[];
+  duration: number;
+  rating: number;
+  release_date: string;
+  description: string;
+  director: string;
+  cast_members: string[];
+  language: string;
+  trailer_url?: string;
+}
 
 const Movies: React.FC = () => {
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     document.title = 'Now Showing Movies - TixWix Cinema';
+    fetchMovies();
   }, []);
+
+  const fetchMovies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('movies')
+        .select('*')
+        .order('release_date', { ascending: false });
+
+      if (error) throw error;
+      setMovies(data || []);
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Extract unique genres from movies
+  const genres = useMemo(() => {
+    const allGenres = movies.flatMap(movie => movie.genre);
+    return [...new Set(allGenres)];
+  }, [movies]);
 
   const filteredMovies = useMemo(() => {
     return movies.filter(movie => {
@@ -25,7 +66,7 @@ const Movies: React.FC = () => {
         movie.genre.some(g => selectedGenres.includes(g));
       return matchesSearch && matchesGenre;
     });
-  }, [searchQuery, selectedGenres]);
+  }, [movies, searchQuery, selectedGenres]);
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres(prev =>
@@ -37,6 +78,35 @@ const Movies: React.FC = () => {
     setSearchQuery('');
     setSelectedGenres([]);
   };
+
+  // Transform database movie to component format
+  const transformMovie = (movie: Movie) => ({
+    id: movie.id,
+    title: movie.title,
+    poster: movie.poster,
+    backdrop: movie.backdrop,
+    genre: movie.genre,
+    duration: movie.duration,
+    rating: movie.rating || 0,
+    releaseDate: movie.release_date,
+    description: movie.description,
+    director: movie.director,
+    cast: movie.cast_members,
+    language: movie.language,
+    trailerUrl: movie.trailer_url,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -113,7 +183,7 @@ const Movies: React.FC = () => {
                   className="animate-slide-up"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <MovieCard movie={movie} />
+                  <MovieCard movie={transformMovie(movie)} />
                 </div>
               ))}
             </div>

@@ -29,7 +29,7 @@ export interface Concert {
 
 export interface ConcertSection {
   id: string;
-  name: 'front' | 'middle' | 'back' | 'vip';
+  name: string;
   price: number;
   totalCapacity: number;
   availableCapacity: number;
