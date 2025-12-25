@@ -21,7 +21,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  addBooking: (booking: Booking) => void;
+  addBooking: (booking: Booking) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -201,15 +201,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Add booking to user's bookings
-  const addBooking = (booking: Booking) => {
-    if (user) {
+  // Add booking to user's bookings - saves to Supabase database
+  const addBooking = async (booking: Booking): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // Insert booking into Supabase
+      const { data: newBooking, error } = await supabase
+        .from('bookings')
+        .insert({
+          id: booking.id,
+          user_id: user.id,
+          type: booking.type,
+          show_id: booking.showId,
+          total_price: booking.totalPrice,
+          promo_code: booking.promoCode || null,
+          discount: booking.discount || 0,
+          final_price: booking.finalPrice,
+          status: booking.status,
+          section_name: booking.section?.name || null,
+          quantity: booking.quantity || null,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving booking:', error);
+        return false;
+      }
+
+      // Update monthly booking count in profiles table
       const newCount = user.monthlyBookingCount >= 4 ? 0 : user.monthlyBookingCount + 1;
+      await supabase
+        .from('profiles')
+        .update({ monthly_booking_count: newCount })
+        .eq('id', user.id);
+
+      // Update local state
       setUser({
         ...user,
         bookings: [...user.bookings, booking],
         monthlyBookingCount: newCount,
       });
+
+      return true;
+    } catch (error) {
+      console.error('Error in addBooking:', error);
+      return false;
     }
   };
 
