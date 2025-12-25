@@ -32,8 +32,10 @@ const ConcertDetail: React.FC = () => {
     }
   }, [concert]);
 
-  // Check if user gets free show (5th show in a month)
+  // Check if user gets free show (5th show in a month - after 4 bookings)
+  // Only first 2 tickets are free
   const isFreeShow = user && user.monthlyBookingCount >= 4;
+  const FREE_TICKETS_LIMIT = 2;
 
   const handleProceed = () => {
     if (!isAuthenticated) {
@@ -44,9 +46,16 @@ const ConcertDetail: React.FC = () => {
 
     if (!selectedSection || !concert) return;
 
-    // Calculate final price
+    // Calculate final price - only first 2 tickets are free if isFreeShow
     const subtotal = selectedSection.price * quantity;
-    const finalPrice = isFreeShow ? 0 : Math.max(0, subtotal - discount);
+    let finalPrice = subtotal;
+    if (isFreeShow) {
+      const freeTickets = Math.min(quantity, FREE_TICKETS_LIMIT);
+      const freeAmount = selectedSection.price * freeTickets;
+      finalPrice = Math.max(0, subtotal - freeAmount - discount);
+    } else {
+      finalPrice = Math.max(0, subtotal - discount);
+    }
 
     // Generate booking ID
     const newBookingId = `TIX${Date.now().toString().slice(-8)}`;
@@ -167,6 +176,7 @@ const ConcertDetail: React.FC = () => {
                 selectedSection={selectedSection}
                 quantity={quantity}
                 isFreeShow={isFreeShow}
+                freeTicketsLimit={FREE_TICKETS_LIMIT}
                 onPromoApply={setDiscount}
                 onProceed={handleProceed}
               />
@@ -189,8 +199,17 @@ const ConcertDetail: React.FC = () => {
           quantity={quantity}
           userName={user?.name || 'Guest'}
           bookingId={bookingId}
-          totalPrice={isFreeShow ? 0 : selectedSection.price * quantity - discount}
-          isFree={isFreeShow}
+          totalPrice={(() => {
+            const subtotal = selectedSection.price * quantity;
+            if (isFreeShow) {
+              const freeTickets = Math.min(quantity, FREE_TICKETS_LIMIT);
+              const freeAmount = selectedSection.price * freeTickets;
+              return Math.max(0, subtotal - freeAmount - discount);
+            }
+            return Math.max(0, subtotal - discount);
+          })()}
+          isFree={isFreeShow && quantity <= FREE_TICKETS_LIMIT}
+          freeTicketsCount={isFreeShow ? Math.min(quantity, FREE_TICKETS_LIMIT) : 0}
           onClose={() => {
             setShowReceipt(false);
             navigate('/profile');

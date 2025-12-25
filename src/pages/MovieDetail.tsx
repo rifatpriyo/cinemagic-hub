@@ -43,8 +43,10 @@ const MovieDetail: React.FC = () => {
     return halls.find(h => h.id === currentShowtime.hallId);
   }, [currentShowtime]);
 
-  // Check if user gets free show (5th show in a month)
+  // Check if user gets free show (5th show in a month - after 4 bookings)
+  // Only first 2 seats are free
   const isFreeShow = user && user.monthlyBookingCount >= 4;
+  const FREE_SEATS_LIMIT = 2;
 
   const dates = [...new Set(movieShowtimes.map(st => st.date))];
 
@@ -71,11 +73,22 @@ const MovieDetail: React.FC = () => {
 
     if (!currentShowtime || selectedSeats.length === 0) return;
 
-    // Calculate final price
+    // Calculate final price - only first 2 seats are free if isFreeShow
     const subtotal = selectedSeats.reduce((total, seat) => {
       return total + currentShowtime.price[seat.type];
     }, 0);
-    const finalPrice = isFreeShow ? 0 : Math.max(0, subtotal - discount);
+    
+    let finalPrice = subtotal;
+    if (isFreeShow) {
+      // Calculate free amount (only first 2 seats are free)
+      const freeSeats = selectedSeats.slice(0, FREE_SEATS_LIMIT);
+      const freeAmount = freeSeats.reduce((total, seat) => {
+        return total + currentShowtime.price[seat.type];
+      }, 0);
+      finalPrice = Math.max(0, subtotal - freeAmount - discount);
+    } else {
+      finalPrice = Math.max(0, subtotal - discount);
+    }
 
     // Generate booking ID
     const newBookingId = `TIX${Date.now().toString().slice(-8)}`;
@@ -267,6 +280,7 @@ const MovieDetail: React.FC = () => {
                 selectedSeats={selectedSeats}
                 prices={currentShowtime?.price}
                 isFreeShow={isFreeShow}
+                freeSeatsLimit={FREE_SEATS_LIMIT}
                 onPromoApply={setDiscount}
                 onProceed={handleProceed}
               />
@@ -278,7 +292,7 @@ const MovieDetail: React.FC = () => {
       <Footer />
 
       {/* Ticket Receipt Modal */}
-      {showReceipt && currentShowtime && currentHall && (
+        {showReceipt && currentShowtime && currentHall && (
         <TicketReceipt
           type="movie"
           title={movie.title}
@@ -288,8 +302,17 @@ const MovieDetail: React.FC = () => {
           seats={selectedSeats}
           userName={user?.name || 'Guest'}
           bookingId={bookingId}
-          totalPrice={isFreeShow ? 0 : selectedSeats.reduce((t, s) => t + currentShowtime.price[s.type], 0) - discount}
-          isFree={isFreeShow}
+          totalPrice={(() => {
+            const subtotal = selectedSeats.reduce((t, s) => t + currentShowtime.price[s.type], 0);
+            if (isFreeShow) {
+              const freeSeats = selectedSeats.slice(0, FREE_SEATS_LIMIT);
+              const freeAmount = freeSeats.reduce((t, s) => t + currentShowtime.price[s.type], 0);
+              return Math.max(0, subtotal - freeAmount - discount);
+            }
+            return Math.max(0, subtotal - discount);
+          })()}
+          isFree={isFreeShow && selectedSeats.length <= FREE_SEATS_LIMIT}
+          freeSeatsCount={isFreeShow ? Math.min(selectedSeats.length, FREE_SEATS_LIMIT) : 0}
           onClose={() => {
             setShowReceipt(false);
             navigate('/profile');
