@@ -12,7 +12,8 @@ import {
   Music, 
   Ticket, 
   DollarSign,
-  BarChart3
+  BarChart3,
+  Plus
 } from 'lucide-react';
 import {
   BarChart,
@@ -27,6 +28,10 @@ import {
   Cell,
   Legend,
 } from 'recharts';
+import { MovieForm } from '@/components/admin/MovieForm';
+import { ShowtimeForm } from '@/components/admin/ShowtimeForm';
+import { ConcertForm } from '@/components/admin/ConcertForm';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock sales data
 const movieSalesData = [
@@ -55,6 +60,30 @@ const Admin: React.FC = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
+  const [movies, setMovies] = useState<any[]>([]);
+  const [concerts, setConcerts] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const fetchMovies = async () => {
+    const { data } = await supabase.from('movies').select('*').order('created_at', { ascending: false });
+    setMovies(data || []);
+  };
+
+  const fetchConcerts = async () => {
+    const { data } = await supabase.from('concerts').select('*').order('created_at', { ascending: false });
+    setConcerts(data || []);
+  };
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    fetchMovies();
+    fetchConcerts();
+  };
+
+  useEffect(() => {
+    fetchMovies();
+    fetchConcerts();
+  }, []);
 
   useEffect(() => {
     document.title = 'Admin Dashboard - TixWix';
@@ -145,10 +174,12 @@ const Admin: React.FC = () => {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="movies">Movies</TabsTrigger>
               <TabsTrigger value="concerts">Concerts</TabsTrigger>
+              <TabsTrigger value="manage-movies">Manage Movies</TabsTrigger>
+              <TabsTrigger value="manage-concerts">Manage Concerts</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -295,6 +326,107 @@ const Admin: React.FC = () => {
                             ৳{totalConcertSales.toLocaleString()}
                           </td>
                         </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Manage Movies Tab */}
+            <TabsContent value="manage-movies">
+              <Card className="glass-card">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Film className="w-5 h-5 text-primary" />
+                    Manage Movies
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <MovieForm onSuccess={handleRefresh} />
+                    <ShowtimeForm onSuccess={handleRefresh} />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Poster</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Title</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Director</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Duration</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Release Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {movies.map((movie) => (
+                          <tr key={movie.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                            <td className="py-2 px-4">
+                              <img src={movie.poster} alt={movie.title} className="w-12 h-16 object-cover rounded" />
+                            </td>
+                            <td className="py-4 px-4 font-medium">{movie.title}</td>
+                            <td className="py-4 px-4">{movie.director}</td>
+                            <td className="py-4 px-4">{movie.duration} min</td>
+                            <td className="py-4 px-4">{movie.release_date}</td>
+                          </tr>
+                        ))}
+                        {movies.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                              No movies found. Add your first movie!
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Manage Concerts Tab */}
+            <TabsContent value="manage-concerts">
+              <Card className="glass-card">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Music className="w-5 h-5 text-accent" />
+                    Manage Concerts
+                  </CardTitle>
+                  <ConcertForm onSuccess={handleRefresh} />
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Poster</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Title</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Artist</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Genre</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {concerts.map((concert) => (
+                          <tr key={concert.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                            <td className="py-2 px-4">
+                              <img src={concert.poster} alt={concert.title} className="w-12 h-16 object-cover rounded" />
+                            </td>
+                            <td className="py-4 px-4 font-medium">{concert.title}</td>
+                            <td className="py-4 px-4">{concert.artist}</td>
+                            <td className="py-4 px-4">{concert.genre}</td>
+                            <td className="py-4 px-4">{concert.date}</td>
+                            <td className="py-4 px-4">{concert.time}</td>
+                          </tr>
+                        ))}
+                        {concerts.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                              No concerts found. Add your first concert!
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
