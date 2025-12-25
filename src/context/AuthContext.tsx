@@ -38,7 +38,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         role: 'user',
         bookings: [],
-        monthlyBookingCount: Math.floor(Math.random() * 5),
+        monthlyBookingCount: 0,
       });
       return true;
     }

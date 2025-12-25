@@ -13,6 +13,8 @@ interface BookingSummaryProps {
   quantity?: number;
   prices?: { normal: number; deluxe: number; super: number };
   isFreeShow?: boolean;
+  freeSeatsLimit?: number;
+  freeTicketsLimit?: number;
   onPromoApply: (discount: number) => void;
   onProceed: () => void;
 }
@@ -24,6 +26,8 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
   quantity = 1,
   prices,
   isFreeShow = false,
+  freeSeatsLimit = 2,
+  freeTicketsLimit = 2,
   onPromoApply,
   onProceed,
 }) => {
@@ -43,12 +47,36 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
   };
 
   const subtotal = calculateSubtotal();
+  
+  // Calculate free amount (only first 2 seats/tickets are free)
+  const calculateFreeAmount = () => {
+    if (!isFreeShow) return 0;
+    
+    if (type === 'movie' && prices) {
+      const freeSeats = selectedSeats.slice(0, freeSeatsLimit);
+      return freeSeats.reduce((total, seat) => {
+        return total + prices[seat.type];
+      }, 0);
+    }
+    if (type === 'concert' && selectedSection) {
+      const freeTickets = Math.min(quantity, freeTicketsLimit);
+      return selectedSection.price * freeTickets;
+    }
+    return 0;
+  };
+  
+  const freeAmount = calculateFreeAmount();
   const discount = appliedPromo 
     ? appliedPromo.type === 'percentage' 
       ? (subtotal * appliedPromo.discount) / 100 
       : appliedPromo.discount
     : 0;
-  const total = isFreeShow ? 0 : Math.max(0, subtotal - discount);
+  const total = Math.max(0, subtotal - freeAmount - discount);
+  
+  // Check if all items are free
+  const isFullyFree = type === 'movie' 
+    ? selectedSeats.length <= freeSeatsLimit && isFreeShow
+    : quantity <= freeTicketsLimit && isFreeShow;
 
   const handleApplyPromo = () => {
     const code = promoInput.trim().toUpperCase();
@@ -120,12 +148,14 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
       {isFreeShow && (
         <div className="flex items-center gap-2 p-3 bg-success/20 rounded-lg text-success">
           <Gift className="w-5 h-5" />
-          <span className="text-sm font-medium">🎉 This is your FREE 5th show!</span>
+          <span className="text-sm font-medium">
+            🎉 This is your FREE 5th show! (First {type === 'movie' ? freeSeatsLimit + ' seats' : freeTicketsLimit + ' tickets'} free)
+          </span>
         </div>
       )}
 
       {/* Promo Code */}
-      {!isFreeShow && (
+      {!isFullyFree && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Tag className="w-4 h-4" />
@@ -166,16 +196,22 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
           <span className="text-muted-foreground">Subtotal</span>
           <span>৳{subtotal.toLocaleString()}</span>
         </div>
+        {freeAmount > 0 && (
+          <div className="flex justify-between text-sm text-success">
+            <span>Free Tickets Discount</span>
+            <span>-৳{freeAmount.toLocaleString()}</span>
+          </div>
+        )}
         {discount > 0 && (
           <div className="flex justify-between text-sm text-success">
-            <span>Discount</span>
+            <span>Promo Discount</span>
             <span>-৳{discount.toLocaleString()}</span>
           </div>
         )}
         <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
           <span>Total</span>
           <span className="text-gradient-gold">
-            {isFreeShow ? 'FREE!' : `৳${total.toLocaleString()}`}
+            {isFullyFree ? 'FREE!' : `৳${total.toLocaleString()}`}
           </span>
         </div>
       </div>
@@ -189,7 +225,7 @@ const BookingSummary: React.FC<BookingSummaryProps> = ({
         onClick={onProceed}
       >
         {canProceed 
-          ? `Proceed to Payment ${isFreeShow ? '(FREE)' : ''}`
+          ? `Proceed to Payment ${isFullyFree ? '(FREE)' : ''}`
           : type === 'movie' ? 'Select seats to continue' : 'Select a section'
         }
       </Button>

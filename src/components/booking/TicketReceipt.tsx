@@ -16,6 +16,8 @@ interface TicketReceiptProps {
   bookingId: string;
   totalPrice: number;
   isFree?: boolean;
+  freeSeatsCount?: number;
+  freeTicketsCount?: number;
   onClose: () => void;
 }
 
@@ -32,6 +34,8 @@ const TicketReceipt: React.FC<TicketReceiptProps> = ({
   bookingId,
   totalPrice,
   isFree,
+  freeSeatsCount = 0,
+  freeTicketsCount = 0,
   onClose,
 }) => {
   const formatDate = (dateStr: string) => {
@@ -140,11 +144,19 @@ const TicketReceipt: React.FC<TicketReceiptProps> = ({
           </div>
 
           {/* Price */}
-          <div className="border-t border-border pt-4 flex justify-between items-center">
-            <span className="font-medium">Total Paid</span>
-            <span className="text-2xl font-bold text-gradient-gold">
-              {isFree ? 'FREE' : `৳${totalPrice.toLocaleString()}`}
-            </span>
+          <div className="border-t border-border pt-4 space-y-2">
+            {(freeSeatsCount > 0 || freeTicketsCount > 0) && (
+              <div className="flex justify-between text-sm text-success">
+                <span>Free {type === 'movie' ? `${freeSeatsCount} seat(s)` : `${freeTicketsCount} ticket(s)`}</span>
+                <span>5th Show Bonus!</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Total Paid</span>
+              <span className="text-2xl font-bold text-gradient-gold">
+                {isFree ? 'FREE' : `৳${totalPrice.toLocaleString()}`}
+              </span>
+            </div>
           </div>
 
           {/* Actions */}
