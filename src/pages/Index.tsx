@@ -4,6 +4,7 @@ import Footer from '@/components/layout/Footer';
 import HeroSection from '@/components/home/HeroSection';
 import FeaturedMovies from '@/components/home/FeaturedMovies';
 import FeaturedConcerts from '@/components/home/FeaturedConcerts';
+import FeaturedFootball from '@/components/home/FeaturedFootball';
 import PromoSection from '@/components/home/PromoSection';
 
 const Index: React.FC = () => {
@@ -18,6 +19,7 @@ const Index: React.FC = () => {
         <HeroSection />
         <FeaturedMovies />
         <FeaturedConcerts />
+        <FeaturedFootball />
         <PromoSection />
       </main>
       <Footer />

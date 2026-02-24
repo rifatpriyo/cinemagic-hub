@@ -12,6 +12,8 @@ import ConcertDetail from "./pages/ConcertDetail";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import Football from "./pages/Football";
+import FootballDetail from "./pages/FootballDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/football" element={<Football />} />
+            <Route path="/football/:id" element={<FootballDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>

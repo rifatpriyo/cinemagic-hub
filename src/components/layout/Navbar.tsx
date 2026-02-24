@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Film, Music, User, LogOut, Menu, X, Ticket, LayoutDashboard } from 'lucide-react';
+import { Film, Music, User, LogOut, Menu, X, Ticket, LayoutDashboard, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 
@@ -38,6 +38,12 @@ const Navbar: React.FC = () => {
               <Button variant="nav" className="gap-2">
                 <Music className="w-4 h-4" />
                 Concerts
+              </Button>
+            </Link>
+            <Link to="/football">
+              <Button variant="nav" className="gap-2">
+                <Trophy className="w-4 h-4" />
+                Football
               </Button>
             </Link>
           </div>
@@ -106,6 +112,12 @@ const Navbar: React.FC = () => {
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <Music className="w-4 h-4" />
                 Concerts
+              </Button>
+            </Link>
+            <Link to="/football" onClick={() => setIsMobileMenuOpen(false)}>
+              <Button variant="ghost" className="w-full justify-start gap-2">
+                <Trophy className="w-4 h-4" />
+                Football
               </Button>
             </Link>
             {isAuthenticated ? (
