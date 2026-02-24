@@ -169,6 +169,95 @@ export type Database = {
         }
         Relationships: []
       }
+      football_matches: {
+        Row: {
+          away_logo: string
+          away_team: string
+          backdrop: string | null
+          created_at: string | null
+          date: string
+          description: string
+          home_logo: string
+          home_team: string
+          id: string
+          league: string
+          poster: string
+          stadium: string
+          time: string
+          updated_at: string | null
+        }
+        Insert: {
+          away_logo: string
+          away_team: string
+          backdrop?: string | null
+          created_at?: string | null
+          date: string
+          description?: string
+          home_logo: string
+          home_team: string
+          id?: string
+          league?: string
+          poster: string
+          stadium: string
+          time: string
+          updated_at?: string | null
+        }
+        Update: {
+          away_logo?: string
+          away_team?: string
+          backdrop?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string
+          home_logo?: string
+          home_team?: string
+          id?: string
+          league?: string
+          poster?: string
+          stadium?: string
+          time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      football_sections: {
+        Row: {
+          available_capacity: number
+          color: string
+          id: string
+          match_id: string
+          name: string
+          price: number
+          total_capacity: number
+        }
+        Insert: {
+          available_capacity: number
+          color?: string
+          id?: string
+          match_id: string
+          name: string
+          price: number
+          total_capacity: number
+        }
+        Update: {
+          available_capacity?: number
+          color?: string
+          id?: string
+          match_id?: string
+          name?: string
+          price?: number
+          total_capacity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "football_sections_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "football_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       halls: {
         Row: {
           id: string
